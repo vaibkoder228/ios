@@ -3,11 +3,8 @@
 # Run it in your own fork: Actions → "Build IPA for re-signing" → Run workflow. The IPA is uploaded as
 # a workflow artifact (kept for a few days), never as a release. See docs/ios/building.md.
 #
-# Your keys: repository secrets TELEGRAM_API_ID and TELEGRAM_API_HASH (from https://my.telegram.org).
-# Without them the build uses Telegram's own public values from the template and warns about it.
-#
-# Telegram is a large build and the standard runner is small (3 cores, 7 GB of memory): a test run on
-# xcode-27 took about 1 hour 20 minutes. The job stops after 6 hours.
+# Required secrets: TELEGRAM_API_ID and TELEGRAM_API_HASH from https://my.telegram.org.
+# Device builds must never silently fall back to Telegram's public API credentials.
 
 name: Build IPA for re-signing
 
@@ -15,7 +12,7 @@ on:
   workflow_dispatch:
     inputs:
       bundle_id:
-        description: "Your bundle ID (not ph.telegra.Telegraph), e.g. com.yourname.wraithgram"
+        description: "Your reverse-DNS bundle ID, e.g. com.froggram.ios"
         required: true
       build_number:
         description: "Build number"
@@ -39,6 +36,33 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Validate device build configuration
+        env:
+          API_ID: ${{ secrets.TELEGRAM_API_ID }}
+          API_HASH: ${{ secrets.TELEGRAM_API_HASH }}
+          BUNDLE_ID: ${{ inputs.bundle_id }}
+        run: |
+          python3 - <<'PY'
+          import os, re, sys
+          api_id = os.environ.get("API_ID", "").strip()
+          api_hash = os.environ.get("API_HASH", "").strip()
+          bundle_id = os.environ.get("BUNDLE_ID", "").strip()
+          errors = []
+          if not api_id or not api_hash:
+              errors.append("Set both TELEGRAM_API_ID and TELEGRAM_API_HASH in Settings → Secrets and variables → Actions (from https://my.telegram.org).")
+          elif not api_id.isdigit() or not re.fullmatch(r"[0-9a-fA-F]{32}", api_hash):
+              errors.append("Telegram API credentials have an invalid format; check the values from my.telegram.org.")
+          if not re.fullmatch(r"[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+", bundle_id):
+              errors.append("bundle_id must be a reverse-DNS identifier, e.g. com.froggram.ios.")
+          if bundle_id == "ph.telegra.Telegraph":
+              errors.append("Do not use Telegram's bundle ID.")
+          if errors:
+              for error in errors:
+                  print(f"::error::{error}")
+              sys.exit(1)
+          print(f"Validated bundle ID: {bundle_id}")
+          PY
+
       - name: Select the Xcode from versions.json
         run: |
           XCODE_VERSION="$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')"
@@ -48,8 +72,6 @@ jobs:
             exit 1
           fi
           sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
-          # Some third-party build files name /Applications/Xcode.app; on the runner it is a symlink to the
-          # default Xcode, which the next step removes.
           if [ -L /Applications/Xcode.app ] || [ ! -e /Applications/Xcode.app ]; then
             sudo ln -sfn "$XCODE_PATH" /Applications/Xcode.app
           fi
@@ -75,11 +97,8 @@ jobs:
           import json, os
           config = json.load(open("build-system/wraithgram-configuration.example.json"))
           config.pop("_warning", None)
-          if os.environ.get("API_ID") and os.environ.get("API_HASH"):
-              config["api_id"] = os.environ["API_ID"]
-              config["api_hash"] = os.environ["API_HASH"]
-          else:
-              print("::warning::TELEGRAM_API_ID / TELEGRAM_API_HASH secrets are not set: building with Telegram's own api_id 8.")
+          config["api_id"] = os.environ["API_ID"].strip()
+          config["api_hash"] = os.environ["API_HASH"].strip()
           config["bundle_id"] = os.environ["BUNDLE_ID"].strip()
           json.dump(config, open("build-system/wraithgram-configuration.json", "w"), indent=2)
           PY
@@ -94,7 +113,7 @@ jobs:
       - name: Upload the IPA
         uses: actions/upload-artifact@v4
         with:
-          name: Wraithgram-for-resign-${{ inputs.build_number }}
+          name: FrogGram-for-resign-${{ inputs.build_number }}
           path: build-output/ipa/Wraithgram-for-resign.ipa
           retention-days: 3
           if-no-files-found: error
