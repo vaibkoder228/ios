@@ -16,13 +16,14 @@ build the app yourself, either on your own Mac or on a GitHub-hosted Mac through
 > [!WARNING]
 > The configuration template, `build-system/wraithgram-configuration.example.json`, contains **Telegram's own
 > public values** from the [Telegram iOS](https://github.com/TelegramMessenger/Telegram-iOS) repository:
-> `api_id` `8`, its `api_hash`, and the bundle ID `ph.telegra.Telegraph`. They are there so that a simulator
-> build works right away. Replace them with your own before you build for an iPhone or share the app.
+> `api_id` `8`, its `api_hash`, and the bundle ID `ph.telegra.Telegraph`. They are for simulator use only.
+> The GitHub Actions device workflow now requires your own API credentials and a reverse-DNS bundle ID;
+> it stops before building if either credential is missing or malformed.
 
 | Field | What to put there |
 |-------|-------------------|
 | `api_id`, `api_hash` | Your own values. Sign in at [my.telegram.org](https://my.telegram.org), open **API development tools** and create an application. Telegram's [rules for developers](https://github.com/TelegramMessenger/Telegram-iOS#creating-your-telegram-application) require your own `api_id`. |
-| `bundle_id` | Your own reverse-DNS identifier, for example `com.yourname.wraithgram`. An IPA with `ph.telegra.Telegraph` would install over the official Telegram app, so the device builds stop when they see it. |
+| `bundle_id` | Your own reverse-DNS identifier, for example `com.froggram.ios`. An IPA with `ph.telegra.Telegraph` would install over the official Telegram app, so the device builds stop when they see it. |
 
 The build scripts check the configuration with `build-system/WGConfigCheck.py`: they print a warning while
 `api_id` is `8`, and a device build stops while `bundle_id` is `ph.telegra.Telegraph`.
@@ -106,11 +107,10 @@ was about 78 MB.
 1. Fork the repository on GitHub.
 2. Optional, but recommended: in your fork, open **Settings → Secrets and variables → Actions** and add two
    repository secrets, `TELEGRAM_API_ID` and `TELEGRAM_API_HASH`, with your values from
-   [my.telegram.org](https://my.telegram.org). Without them the build uses Telegram's own `api_id` `8` and
-   shows a warning.
+   [my.telegram.org](https://my.telegram.org). The device workflow stops before compilation if either secret is missing.
 3. Open the **Actions** tab of your fork and enable workflows if GitHub asks.
 4. Select **Build IPA for re-signing**, then **Run workflow**, and fill in:
-   - **bundle_id**: your own bundle ID, for example `com.yourname.wraithgram`;
+   - **bundle_id**: your own bundle ID, for example `com.froggram.ios`;
    - **build_number**: any number, `1` by default;
    - **runner**: leave `xcode-27`. The runner must have the Xcode version from `versions.json`; GitHub
      publishes the Xcode versions of each runner in
