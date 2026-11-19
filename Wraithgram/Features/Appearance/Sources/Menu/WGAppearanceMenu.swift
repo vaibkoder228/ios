@@ -381,6 +381,9 @@ enum WGAppearanceMenu {
     private static func registerProfile() {
         let tab = WGMenuTabID.appearanceProfileSettings
         WGMenuRegistry.register(section: WGMenuSectionDescriptor(id: WGAppearanceMenu.profileInfo, screen: .tab(tab), order: 300, header: { WGStrings.Appearance.Profile.header }))
+        WGMenuRegistry.register(WGMenuRow(id: "appearance.profile.localEditor", section: WGAppearanceMenu.profileInfo, order: 50, title: { "Локальный профиль — предпросмотр" }, subtitle: { "Только на этом устройстве; данные Telegram не меняются" }, kind: .action({ context in
+            context.presentNative(WGLocalProfileEditor.makeController())
+        })))
         let rows: [(String, () -> String, (() -> String)?, WGSetting<Bool>)] = [
             ("appearance.profile.showId", { WGStrings.Appearance.Profile.showId }, nil, WGAppearanceSettings.profileShowId),
             ("appearance.profile.showDataCenter", { WGStrings.Appearance.Profile.showDataCenter }, { WGStrings.Appearance.Profile.showDataCenterInfo }, WGAppearanceSettings.profileShowDataCenter),
