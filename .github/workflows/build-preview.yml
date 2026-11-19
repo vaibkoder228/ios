@@ -42,7 +42,7 @@ jobs:
           python3 - <<'PY'
           import os, re, sys
           bundle_id = os.environ["BUNDLE_ID"].strip()
-          if not re.fullmatch(r"[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+", bundle_id):
+          if not re.fullmatch(r"[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+", bundle_id):
               sys.exit("bundle_id must be reverse-DNS, e.g. com.froggram.ios")
           if bundle_id == "ph.telegra.Telegraph":
               sys.exit("Do not use Telegram's bundle ID")
