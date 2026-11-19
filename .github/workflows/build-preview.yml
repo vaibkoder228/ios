@@ -1,0 +1,113 @@
+# UI-only preview build. Uses Telegram's public sample API ID (8); login/network features are not supported.
+name: Build FrogGram UI preview (no Telegram login)
+
+on:
+  workflow_dispatch:
+    inputs:
+      code_ref:
+        description: "Branch containing the FrogGram changes"
+        required: true
+        default: "froggram/stabilize-branding"
+      bundle_id:
+        description: "Reverse-DNS bundle ID"
+        required: true
+        default: "com.froggram.ios"
+      build_number:
+        description: "Build number"
+        required: true
+        default: "1"
+      runner:
+        description: "Runner label matching versions.json"
+        required: true
+        default: "xcode-27"
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ${{ inputs.runner }}
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.code_ref }}
+          submodules: recursive
+
+      - name: Validate inputs
+        env:
+          BUNDLE_ID: ${{ inputs.bundle_id }}
+          CODE_REF: ${{ inputs.code_ref }}
+        run: |
+          python3 - <<'PY'
+          import os, re, sys
+          bundle_id = os.environ["BUNDLE_ID"].strip()
+          if not re.fullmatch(r"[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+", bundle_id):
+              sys.exit("bundle_id must be reverse-DNS, e.g. com.froggram.ios")
+          if bundle_id == "ph.telegra.Telegraph":
+              sys.exit("Do not use Telegram's bundle ID")
+          if not os.environ["CODE_REF"].strip():
+              sys.exit("code_ref is required")
+          print("Building ref:", os.environ["CODE_REF"])
+          print("Bundle ID:", bundle_id)
+          PY
+
+      - name: Select the Xcode from versions.json
+        run: |
+          XCODE_VERSION="$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')"
+          XCODE_PATH="/Applications/Xcode_${XCODE_VERSION}.app"
+          if [ ! -d "$XCODE_PATH" ]; then
+            echo "::error::$XCODE_PATH is not on this runner."
+            exit 1
+          fi
+          sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
+          if [ -L /Applications/Xcode.app ] || [ ! -e /Applications/Xcode.app ]; then
+            sudo ln -sfn "$XCODE_PATH" /Applications/Xcode.app
+          fi
+          echo "XCODE_PATH=$XCODE_PATH" >> "$GITHUB_ENV"
+          xcodebuild -version
+
+      - name: Free disk space
+        run: |
+          df -h /
+          for xcode in /Applications/Xcode_*.app; do
+            [ "$(cd "$xcode" && pwd -P)" = "$(cd "$XCODE_PATH" && pwd -P)" ] || sudo rm -rf "$xcode"
+          done
+          sudo rm -rf "$HOME/Library/Android" /usr/local/share/dotnet "$HOME/.dotnet" "$HOME/hostedtoolcache" || true
+          df -h /
+
+      - name: Write preview configuration
+        env:
+          BUNDLE_ID: ${{ inputs.bundle_id }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          config = json.load(open("build-system/wraithgram-configuration.example.json"))
+          config.pop("_warning", None)
+          config["bundle_id"] = os.environ["BUNDLE_ID"].strip()
+          json.dump(config, open("build-system/wraithgram-configuration.json", "w"), indent=2)
+          PY
+          echo "::warning::UI preview only. Telegram's sample API ID 8 is restricted; login, chats and messaging are not expected to work."
+
+      - name: Build preview IPA
+        env:
+          WG_BAZEL_CACHE: ""
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: build-system/WGBuildResign.sh "$BUILD_NUMBER"
+
+      - name: Upload preview IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: FrogGram-UI-preview-no-login-${{ inputs.build_number }}
+          path: build-output/ipa/Wraithgram-for-resign.ipa
+          retention-days: 3
+          if-no-files-found: error
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: froggram-preview-build-log
+          path: /tmp/wg-build.log
+          retention-days: 3
+          if-no-files-found: ignore
