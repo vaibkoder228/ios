@@ -11,15 +11,15 @@ public enum WGLocalProfileEditor {
             preferredStyle: .alert
         )
 
-        let fields: [(String, String, String)] = [
-            ("Имя для предпросмотра", draft.displayName, "Имя"),
-            ("Username для предпросмотра", draft.username, "@username"),
-            ("Декоративный номер", draft.decorativePhoneNumber, "+…"),
-            ("О себе для предпросмотра", draft.bio, "Описание"),
-            ("Эмодзи оформления", draft.accentEmoji, "✨")
+        let fields: [(String, String)] = [
+            ("Имя для предпросмотра", draft.displayName),
+            ("Username для предпросмотра", draft.username),
+            ("Декоративный номер", draft.decorativePhoneNumber),
+            ("О себе для предпросмотра", draft.bio),
+            ("Эмодзи оформления", draft.accentEmoji)
         ]
 
-        for (placeholder, value, _) in fields {
+        for (placeholder, value) in fields {
             alert.addTextField { field in
                 field.placeholder = placeholder
                 field.text = value
