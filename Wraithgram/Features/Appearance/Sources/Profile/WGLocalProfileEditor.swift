@@ -28,6 +28,32 @@ public enum WGLocalProfileEditor {
             }
         }
 
+        alert.addAction(UIAlertAction(title: "Предпросмотр", style: .default) { _ in
+            let values = alert.textFields ?? []
+            let preview = WGLocalProfileDraft(
+                displayName: values[safe: 0]?.text ?? "",
+                username: values[safe: 1]?.text ?? "",
+                decorativePhoneNumber: values[safe: 2]?.text ?? "",
+                bio: values[safe: 3]?.text ?? "",
+                accentEmoji: values[safe: 4]?.text ?? ""
+            )
+            let details = [
+                preview.displayName.isEmpty ? nil : "Имя: \(preview.displayName)",
+                preview.username.isEmpty ? nil : "Username: @\(preview.username)",
+                preview.decorativePhoneNumber.isEmpty ? nil : "Номер: \(preview.decorativePhoneNumber)",
+                preview.bio.isEmpty ? nil : "О себе: \(preview.bio)",
+                preview.accentEmoji.isEmpty ? nil : "Эмодзи: \(preview.accentEmoji)"
+            ].compactMap { $0 }
+            let sheet = UIAlertController(
+                title: "Локальный предпросмотр",
+                message: details.isEmpty ? "Поля пока пусты." : details.joined(separator: "\\n"),
+                preferredStyle: .alert
+            )
+            sheet.addAction(UIAlertAction(title: "Назад", style: .default) { _ in
+                presenter.present(alert, animated: true)
+            })
+            presenter.present(sheet, animated: true)
+        })
         alert.addAction(UIAlertAction(title: "Сбросить", style: .destructive) { _ in
             WGLocalProfileDraftStore.shared.reset()
         })
