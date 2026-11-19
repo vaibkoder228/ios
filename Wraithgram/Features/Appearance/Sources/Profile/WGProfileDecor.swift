@@ -36,13 +36,26 @@ enum WGProfileDecor {
         let showId = WGAppearanceSettings.profileShowId.value
         let showDataCenter = WGAppearanceSettings.profileShowDataCenter.value
         let showDates = WGAppearanceSettings.profileShowDates.value
-        if !showId && !showDataCenter && !showDates {
-            return []
-        }
         let context = info.context
         let peer = info.peer
+        let isOwnProfile = peer.id == context.account.peerId
+        if !showId && !showDataCenter && !showDates && !isOwnProfile {
+            return []
+        }
         let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
         var result: [WGPeerInfoRow] = []
+
+        // Device-only profile customization; never changes the Telegram account.
+        if isOwnProfile {
+            result.append(WGPeerInfoRow(
+                id: "appearance.profile.localPreview",
+                label: "Локальный профиль",
+                text: "Предпросмотр и редактор",
+                action: { [weak controller = info.controller] in
+                    controller?.present(WGLocalProfileEditor.makeController(), animated: true)
+                }
+            ))
+        }
 
         if showId {
             let idText = WGProfileDecor.idText(peer)
