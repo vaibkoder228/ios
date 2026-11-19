@@ -3,7 +3,7 @@ import UIKit
 /// Native, device-only editor for the local profile presentation draft.
 /// It deliberately edits a preview model and never calls Telegram account APIs.
 public enum WGLocalProfileEditor {
-    public static func present(from presenter: UIViewController) {
+    public static func makeController() -> UIAlertController {
         let draft = WGLocalProfileDraftStore.shared.load()
         let alert = UIAlertController(
             title: "Локальный профиль",
@@ -43,7 +43,11 @@ public enum WGLocalProfileEditor {
             )
             WGLocalProfileDraftStore.shared.save(updated)
         })
-        presenter.present(alert, animated: true)
+        return alert
+    }
+
+    public static func present(from presenter: UIViewController) {
+        presenter.present(makeController(), animated: true)
     }
 }
 
