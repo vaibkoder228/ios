@@ -7,7 +7,7 @@ on:
       code_ref:
         description: "Branch containing the FrogGram changes"
         required: true
-        default: "froggram/stabilize-branding"
+        default: "froggram/fix-black-launch"
       bundle_id:
         description: "Reverse-DNS bundle ID"
         required: true
